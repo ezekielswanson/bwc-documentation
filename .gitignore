@@ -1,0 +1,11 @@
+# Local Design Manager snapshot — keep on disk, not in this docs repo
+bwc-quote-form/
+cms-webpack-serverless-boilerplate/
+Spark-copy/
+
+# Secrets and local junk
+.env
+.env.*
+*.pem
+node_modules/
+.DS_Store
