@@ -36,7 +36,7 @@ The folders below were reviewed from a local snapshot fetched from HubSpot Desig
 
 ## Start here
 
-Solution architects: start at **[docs/README.md](./docs/README.md)**.
+Begin at **[docs/README.md](./docs/README.md)**.
 
 
 
