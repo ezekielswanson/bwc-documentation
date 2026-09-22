@@ -64,6 +64,23 @@ Validation buckets (supporting signals only — they do not replace billing-wind
 | Portal login | HubSpot private content | Access group (**Unknown** name) |
 | Cancellation **intent** | **Unknown** in this snapshot | Not updated by `updateContactFields` |
 
+## Stripe event inputs and downstream ownership
+
+**Confirmed from live Stripe destination configuration on 2026-09-22.** See [03-serverless.md](./03-serverless.md) for the complete inventory and API versions.
+
+| Stripe event | Consumer | Confirmed responsibility or boundary |
+| --- | --- | --- |
+| `checkout.session.completed` | BWC `join-date-mapping` | Sets Contact `join_date` from the event timestamp; write-once behavior is confirmed in code. |
+| `customer.subscription.created` | Zaybra + BWC `handle-successful-payment` | Zaybra consumes the subscription for its sync; BWC performs post-payment work described in Stripe as Climate Clean/date correction. Exact bundled field writes require code verification. |
+| `customer.subscription.updated` | Zaybra + BWC `handle-subscription-lifecycle` | Zaybra consumes lifecycle updates; BWC description names `paid_through` synchronization. Exact bundled field writes require code verification. |
+| `customer.subscription.deleted` | Zaybra | Vendor sync input. No BWC custom destination is subscribed directly. |
+| `invoice.paid` | Zaybra | Vendor sync input. |
+| `invoice.payment_succeeded` | BWC `handle-successful-payment` | BWC post-payment input; Zaybra is not subscribed to this event. |
+| `invoice.payment_failed` | BWC `handle-subscription-lifecycle` | BWC failed-payment input; Zaybra is not subscribed to this event. |
+| `invoice.finalized` | Zaybra + Gift Up | Two external consumers with separate sync responsibilities. |
+
+Receiving an event confirms an integration input. It does **not** prove that the consumer calls the equivalent Stripe API, nor does it prove which object fields it writes into HubSpot. Exact Zaybra API calls and mappings remain **Unknown** until verified with Stripe Workbench request logs or hapily documentation.
+
 ## Contact fields written by winner selection
 
 | Contact | From hapily Subscription |
@@ -105,3 +122,4 @@ Contact `status_of_membership` is a copy of hapily `subscription_status` with sp
 
 - Alias-email mapping implementation — not in these three folders.
 - `requested_cancellation` / `requested_cancellation_date` — **not present** in this snapshot.
+- Exact Zaybra API requests and field mappings beyond the confirmed subscribed-event families.
