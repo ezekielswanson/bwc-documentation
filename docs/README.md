@@ -6,7 +6,7 @@ This pack explains the **BWC overlay**: Join form, serverless, portal, and how c
 
 ## Snapshot warning
 
-Some production code may have been edited locally and uploaded **directly to Design Manager**. Treat this folder as a starting point. Re-fetch or inspect live assets before changing production.
+Some production code may have been edited locally and uploaded **directly to Design Manager**. This GitHub repository contains documentation only. **Collin should inspect the actual live files in HubSpot Design Manager for portal `44020082` before changing production.** BWC has no HubSpot sandbox; Stripe test mode is separate.
 
 ## 15-minute reading path
 

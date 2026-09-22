@@ -99,6 +99,7 @@ Leave the Contact subscription fields and **Current Subscription** label unchang
 - `subscription_status` is copied from the winner, but it does not select the winner.
 - The function must evaluate the complete Contact-level subscription set, not only the triggering record.
 - The **Current Subscription** label must follow the same safe winner.
+
 ## Source-of-truth matrix
 
 | Field / event | Authority | HubSpot landing |

@@ -181,6 +181,7 @@ HubSpot can hold **multiple** associated hapily Subscription records per Contact
 8. If no safe winner exists, leave Contact subscription fields and the current label unchanged; set `subscription_sync_anomaly` and `subscription_sync_anomaly_reason`.
 
 `billing_start_date` selects the winner. `hs_createdate` and object ID are tie-breakers. `billing_end_date` and status are required/copied as applicable but do not rank the winner.
+
 > **Current Subscription** label reflects a code decision — it is not the selection algorithm itself.
 
 ### 5. Portal registration and access
