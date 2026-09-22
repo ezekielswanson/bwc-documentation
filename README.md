@@ -34,6 +34,9 @@ The folders below were reviewed from a local snapshot fetched from HubSpot Desig
 | `cms-webpack-serverless-boilerplate/` | `cms-webpack-serverless-boilerplate` | Serverless functions (checkout, webhooks, mapping, renewal) |
 | `Spark-copy/` | `Spark copy` | Membership portal theme and modules (`members.betterworldclub.net`) |
 
+Design manager link:
+https://app.hubspot.com/design-manager/44020082
+
 ## Start here
 
 Begin at **[docs/README.md](./docs/README.md)**.
