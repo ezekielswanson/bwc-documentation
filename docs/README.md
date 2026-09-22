@@ -33,4 +33,3 @@ Status tags used throughout:
 | `../cms-webpack-serverless-boilerplate/` | HubSpot serverless (`/_hcms/api/...`) |
 | `../Spark-copy/` | Membership portal theme |
 
-Internal assignment notes (not the client pack): [TASK_HANDOFF.md](./TASK_HANDOFF.md), [TOOLS_AND_SETUP.md](./TOOLS_AND_SETUP.md), [TASK_REVIEW_CONCISE.md](./TASK_REVIEW_CONCISE.md).
