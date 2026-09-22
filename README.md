@@ -38,18 +38,7 @@ The folders below were reviewed from a local snapshot fetched from HubSpot Desig
 
 Solution architects: start at **[docs/README.md](./docs/README.md)**.
 
-Internal assignment notes: [docs/TASK_HANDOFF.md](./docs/TASK_HANDOFF.md), [docs/TOOLS_AND_SETUP.md](./docs/TOOLS_AND_SETUP.md).
 
-## Related workspace folders
-
-Additional logic, scripts, runbooks, and historical context may exist outside this folder:
-
-| Path | Notes |
-| --- | --- |
-| `../bwc_repo_webhook_final/` | Webhooks, membership reconciliation docs, `AGENTS.md` |
-| `../bwc_repo_membership portal/` | Earlier membership portal work |
-| `../bwc_login_page/` | Login page modules |
-| `../bwc-production-migration/` | Migration and import scripts |
 
 ## Client documentation pack
 
@@ -62,6 +51,4 @@ docs/
 ├── 04-member-portal.md
 ├── 05-data-and-rules.md
 ├── 06-gaps-and-ops.md
-├── TASK_HANDOFF.md           ← internal assignment
-└── TOOLS_AND_SETUP.md        ← internal tooling
 ```
