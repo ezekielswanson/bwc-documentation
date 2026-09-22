@@ -50,12 +50,41 @@ Treat vendor **batch Stripe subscription imports** as **Unknown**. Confirm in No
 
 Do not use member PII in docs or logs. Winner-selection logs identifiers only.
 
+## Stripe webhook operations
+
+The live destination list, event subscriptions, snapshot payload types, and API versions were verified in Stripe on 2026-09-22. The code-level controls below still require verification in the active HubSpot bundles.
+
+| Control | Current evidence | Required operating rule |
+| --- | --- | --- |
+| Signature verification | **Unknown** from Stripe configuration | Verify `Stripe-Signature` with the signing secret assigned to that exact endpoint. Store only the secret name in docs; never the value. |
+| Idempotency | **Unknown** | Store or otherwise deduplicate Stripe event IDs before making repeatable HubSpot or Climate Clean writes. |
+| Event ordering | Stripe does not guarantee business events arrive in application order | Resolve current Stripe/HubSpot state rather than assuming delivery order. |
+| Acknowledgment | **Unknown** | Return a successful `2xx` promptly; perform long-running work safely after acknowledgment when the platform permits. |
+| Retries and replay | Stripe retries failed deliveries; BWC replay procedure is **Unknown** | Reprocess only after confirming idempotency and the current downstream state. |
+| Payload schema | **Confirmed:** snapshot events; Zaybra `2020-08-27`, BWC `2024-04-10`, Gift Up `2022-11-15` | Parse against the destination-specific version. Test version changes before production. |
+| Test-mode parity | Not available in the reviewed Stripe connection | Confirm equivalent test destinations, event lists, secrets, and synthetic end-to-end tests. |
+| Vendor ownership | Zaybra and Gift Up endpoints are external | Escalate vendor delivery/mapping failures to the vendor; do not send vendor events to a BWC endpoint as a substitute. |
+
+### Webhook incident flow
+
+1. Identify the Stripe event ID, type, destination, livemode value, and delivery status in Workbench.
+2. Confirm whether the destination is Zaybra, BWC custom, or Gift Up before taking action.
+3. Check the destination-specific API version and inspect the matching handler/vendor logs without copying PII into the ticket.
+4. Confirm whether the downstream write already succeeded. A Stripe delivery failure and a HubSpot business-rule failure are different incidents.
+5. Replay only when the handler is idempotent and the desired HubSpot/Climate Clean outcome is known.
+6. Recheck the Contact, hapily Subscription, association label 92, and anomaly fields after recovery.
+
+Stripe references: [webhook guidance](https://docs.stripe.com/webhooks), [process undelivered events](https://docs.stripe.com/webhooks/process-undelivered-events), [testing webhooks](https://docs.stripe.com/automated-testing/webhooks), [subscription webhooks](https://docs.stripe.com/billing/subscriptions/webhooks), and [webhook versioning](https://docs.stripe.com/webhooks/versioning).
+
 ## Environment and ownership
 
 | Layer | Authority |
 | --- | --- |
+| Stripe live account | Better World Holdings (`acct_1PIy6rKNMTeBGk8y`) |
 | Stripe live vs test | Stripe dashboard; serverless secret `sandboxStripe` name is suspicious — **verify** |
-| hapily sync | hapily app in portal `44020082` |
+| Stripe event destinations | Stripe Workbench; confirmed live inventory in [03-serverless.md](./03-serverless.md) |
+| hapily sync | hapily app in portal `44020082` plus the vendor-owned Zaybra Stripe destination |
+| BWC custom Stripe webhooks | HubSpot serverless routes plus Stripe Workbench configuration |
 | Design Manager folders | `bwc-quote-form`, `cms-webpack-serverless-boilerplate`, `Spark copy` |
 | This documentation repo | Snapshot only; may drift |
 | Sibling scripts | `../bwc_repo_webhook_final/` (backfills, runbooks), migration folders |
@@ -71,7 +100,13 @@ hs cms fetch "cms-webpack-serverless-boilerplate" "./cms-webpack-serverless-boil
 hs cms fetch "Spark copy" "./Spark-copy" --account 44020082
 ```
 
-HubSpot-only (not in repo): workflows, private apps, access groups, hapily install, Stripe webhook endpoints.
+External configuration not stored in this repo: HubSpot workflows, private apps, access groups, hapily installation settings, Stripe event-destination configuration, signing-secret values, and Stripe test-mode parity.
+
+## Remaining questions
+
+- Is Stripe Tax enabled for BWC recurring payments, and are the required registrations active? Do not infer tax collection from Checkout alone. See [Stripe Tax for subscriptions](https://docs.stripe.com/tax/subscriptions).
+- Are BWC’s three custom webhook endpoints signature-verified and idempotent in the active HubSpot bundles?
+- Is there a documented replay owner and recovery threshold for Zaybra, BWC custom, and Gift Up deliveries?
 
 ## Notion titles to reconcile (not copied here)
 

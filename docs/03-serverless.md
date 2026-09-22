@@ -27,6 +27,77 @@ flowchart TB
   hsWH --> backfill[updateContactFieldsBackFill]
 ```
 
+## Live Stripe webhook data flow
+
+**Confirmed in Stripe live mode on 2026-09-22** for Better World Holdings (`acct_1PIy6rKNMTeBGk8y`). All five destinations are enabled, receive snapshot payloads, and receive events from this account (`@self`).
+
+```text
+┌────────────────────────────┐
+│ Stripe live account        │
+│ Customers / subscriptions │
+│ invoices / charges        │
+└──────────────┬─────────────┘
+               │ snapshot events
+       ┌───────┼───────────────────────┬──────────────────────┬───────────────────┐
+       │       │                       │                      │                   │
+       ▼       ▼                       ▼                      ▼                   ▼
+┌───────────┐ ┌──────────────────┐ ┌───────────────────┐ ┌────────────────┐ ┌───────────┐
+│ Zaybra /  │ │ join-date-      │ │ handle-successful │ │ subscription-  │ │ Gift Up   │
+│ hapily    │ │ mapping         │ │ -payment          │ │ lifecycle      │ │ coupons   │
+└─────┬─────┘ └────────┬─────────┘ └─────────┬─────────┘ └───────┬────────┘ └─────┬─────┘
+      │                │                     │                   │                │
+      ▼                ▼                     ▼                   ▼                ▼
+┌───────────┐  ┌───────────────┐   ┌─────────────────┐  ┌────────────────┐  ┌───────────┐
+│ HubSpot   │  │ Contact       │   │ Climate Clean + │  │ hapily dates / │  │ Gift Up   │
+│ hapily    │  │ join_date     │   │ date correction │  │ failed payment │  │ coupon    │
+│ records   │  │ write-once    │   │                 │  │ handling       │  │ sync      │
+└───────────┘  └───────────────┘   └─────────────────┘  └────────────────┘  └───────────┘
+```
+
+### Live destination inventory
+
+| Destination | Owner | Snapshot API version | Enabled events | Purpose |
+| --- | --- | --- | ---: | --- |
+| `zaybra.webhook.a8labs.io/v2` | hapily/Zaybra | `2020-08-27` | 19 | Vendor-managed Stripe → HubSpot synchronization. Full query string intentionally omitted. |
+| `/_hcms/api/handle-successful-payment` | BWC | `2024-04-10` | 2 | Successful-payment processing, Climate Clean Journal handoff, and effective/renewal-date correction. |
+| `/_hcms/api/handle-subscription-lifecycle` | BWC | `2024-04-10` | 2 | Failed-payment/lifecycle handling and `paid_through` synchronization to hapily Subscription records. |
+| `/_hcms/api/join-date-mapping` | BWC | `2024-04-10` | 1 | Write-once Contact join date. |
+| `inbound.giftup.app/.../StripeCoupons/all` | Gift Up | `2022-11-15` | 4 | Coupon/discount integration; separate from the core membership sync. Full URL intentionally omitted. |
+
+### Zaybra/hapily subscriptions
+
+The live Zaybra destination receives these events. This confirms its inputs, not every API read or write the vendor might perform afterward.
+
+- **Charges:** `charge.captured`, `charge.failed`, `charge.refunded`, `charge.succeeded`
+- **Customers:** `customer.created`, `customer.updated`
+- **Subscriptions:** `customer.subscription.created`, `customer.subscription.deleted`, `customer.subscription.pending_update_applied`, `customer.subscription.pending_update_expired`, `customer.subscription.trial_will_end`, `customer.subscription.updated`
+- **Invoices:** `invoice.finalized`, `invoice.paid`
+- **Subscription schedules:** `subscription_schedule.aborted`, `subscription_schedule.canceled`, `subscription_schedule.completed`, `subscription_schedule.created`, `subscription_schedule.updated`
+
+### Event ownership and overlap
+
+| Event | Zaybra/hapily | BWC custom | Gift Up |
+| --- | --- | --- | --- |
+| `checkout.session.completed` | — | `join-date-mapping` | — |
+| `customer.subscription.created` | Sync consumer | `handle-successful-payment` | — |
+| `customer.subscription.updated` | Sync consumer | `handle-subscription-lifecycle` | — |
+| `customer.subscription.deleted` | Sync consumer | — | — |
+| `invoice.paid` | Sync consumer | — | — |
+| `invoice.payment_succeeded` | — | `handle-successful-payment` | — |
+| `invoice.payment_failed` | — | `handle-subscription-lifecycle` | — |
+| `invoice.finalized` | Sync consumer | — | Coupon consumer |
+
+Overlap is intentional only when each consumer has a separate responsibility. The BWC handlers must remain idempotent because related Stripe events can describe the same subscription lifecycle change.
+
+### Payload versions and ownership
+
+- The Zaybra endpoint is pinned to snapshot API version `2020-08-27`; the BWC endpoints use `2024-04-10`. Different handlers can therefore receive different object shapes for related events.
+- Do not upgrade the vendor endpoint without hapily confirmation and test-mode validation.
+- A subscribed event does not prove that Zaybra calls the corresponding Stripe API. Exact vendor API reads/writes remain **Unknown** until verified in Stripe Workbench request logs or vendor documentation.
+- Stripe configuration does not prove signature verification, idempotency, or error handling inside the BWC bundles. Those controls remain **Unknown** until the active handler code is verified.
+
+Stripe references: [webhooks](https://docs.stripe.com/webhooks), [subscription webhooks](https://docs.stripe.com/billing/subscriptions/webhooks), [event destinations](https://docs.stripe.com/workbench/event-destinations), and [webhook versioning](https://docs.stripe.com/webhooks/versioning).
+
 ## Endpoint catalog (Confirmed from `serverless.json`)
 
 ### Checkout
@@ -48,10 +119,10 @@ flowchart TB
 
 ### Post-pay / lifecycle
 
-| Route | File | Role |
-| --- | --- | --- |
-| `handle-successful-payment` | `handleSuccessfulPayment.js` | Stripe webhook handler; includes `customer.subscription.created` branch. Bundled — confirm subscribed events in HubSpot/Stripe dashboard. |
-| `handle-subscription-lifecycle` | `handleSubscriptionLifecycle.js` | Stripe lifecycle webhook. Bundled. |
+| Route | File | Live Stripe events | Role |
+| --- | --- | --- | --- |
+| `handle-successful-payment` | `handleSuccessfulPayment.js` | `invoice.payment_succeeded`, `customer.subscription.created` | Net-new and renewal post-payment work; Stripe description names Climate Clean Journal and effective/renewal-date correction. Bundled — verify the field-level behavior in active code. |
+| `handle-subscription-lifecycle` | `handleSubscriptionLifecycle.js` | `invoice.payment_failed`, `customer.subscription.updated` | Failed-payment/lifecycle work; Stripe description names `paid_through` synchronization to hapily Subscription records. Bundled — verify the field-level behavior in active code. |
 
 ### Portal
 
@@ -87,10 +158,13 @@ See [05-data-and-rules.md](./05-data-and-rules.md).
 
 ## Secrets (`serverless.json`)
 
-Secrets are named in `serverless.json`. Verify whether `sandboxStripe` is actually the live key.
+Secrets are named in `serverless.json`. Verify whether `sandboxStripe` is actually the live key. Never document secret values or webhook signing secrets.
 
 ## Open questions
 
-- Which Stripe events are subscribed to which endpoints — **Unknown** in this snapshot (confirm in Stripe + HubSpot webhook settings).
+- Do all three BWC Stripe handlers verify the `Stripe-Signature` header against the correct endpoint-specific secret?
+- How do the BWC handlers deduplicate and safely retry related or repeated events?
+- Are equivalent endpoints configured and tested in Stripe test mode?
+- Which exact Stripe API calls does Zaybra make after receiving an event? Event subscriptions alone do not answer this.
 - Workflow triggers for card generation vs join date — **Unknown**.
 - Whether `handle-renewal-purchase` is unused on purpose — Confirmed dead `return;` in this snapshot.
