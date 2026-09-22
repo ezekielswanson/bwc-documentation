@@ -14,19 +14,21 @@ Client handoff package for documenting the BWC member lifecycle, HubSpot/Stripe/
 | --- | --- |
 | Portal name | `bwc` |
 | Portal ID | `44020082` |
-| Sandbox | `bwc_sandbox` (`51439185`) |
+| HubSpot sandbox | None |
 
-All HubSpot CLI and API work for this documentation effort must target portal **44020082**, not the machine default account.
+All HubSpot CLI and API work for this documentation effort must target portal **44020082**, not the machine default account. BWC does not have a HubSpot sandbox; Stripe test mode is a separate Stripe environment.
 
 ```bash
 hs accounts use 44020082   # or: --account 44020082 on individual commands
 ```
 
-## What is in this folder
+## Source files and repository scope
 
-This repo is a **snapshot** fetched from HubSpot Design Manager on 2026-09-19:
+This GitHub repository contains the documentation pack only. **Collin should access the actual live CMS and serverless files in HubSpot Design Manager for portal `44020082`.**
 
-| Local folder | Design Manager source | Role |
+The folders below were reviewed from a local snapshot fetched from HubSpot Design Manager on 2026-09-19. They are intentionally not committed to this GitHub repository.
+
+| Local snapshot folder | HubSpot Design Manager source | Role |
 | --- | --- | --- |
 | `bwc-quote-form/` | `bwc-quote-form` | Join / quote React form (`join.betterworldclub.net`) |
 | `cms-webpack-serverless-boilerplate/` | `cms-webpack-serverless-boilerplate` | Serverless functions (checkout, webhooks, mapping, renewal) |

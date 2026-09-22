@@ -169,18 +169,18 @@ The core business requirement: HubSpot must expose **one trustworthy, current me
 
 HubSpot can hold **multiple** associated hapily Subscription records per Contact (renewals, imports, canceled lineages, duplicate sync, corrections). Do not assume the first association is current.
 
-**Current reconciliation pattern (verify against post-merge logic):**
+**Current reconciliation pattern:**
 
-1. Resolve Contact from triggering subscription.
-2. Load all associated hapily Subscriptions.
-3. Exclude ineligible records (missing `subscription_id`, status, billing-window dates; delta/import artifacts).
-4. Group by Stripe `subscription_id`.
-5. Select one representative per lineage using most recent billing window.
-6. Compare representatives; choose authoritative current subscription — primarily latest `billing_end_date`, then `billing_start_date`, then lifecycle signals and object ID.
-7. Map winner onto Contact fields: `status_of_membership`, `billing_start_date`, `billing_end_date`, `products`, `coupon`, `discount`.
-8. Apply **Current Subscription** association label to winner; remove stale labels from losers.
-9. If no safe winner: do not overwrite Contact blindly. Set `subscription_sync_anomaly` and `subscription_sync_anomaly_reason`.
+1. Resolve the Contact from the triggering subscription and load the full associated hapily Subscription set.
+2. Exclude records with populated `subscription_type`, blank `subscription_status`, blank `subscription_id`, or missing `billing_start_date` / `billing_end_date`.
+3. Group eligible records by Stripe `subscription_id`.
+4. Pick one representative per group by latest `billing_start_date`, then latest `hs_createdate`, then highest HubSpot object ID.
+5. Pick the Contact-level standard winner using the same order.
+6. If the standard winner is canceled while a competing eligible active record has `paid_through` and the case appears merge-affected or tied to a deleted Stripe lineage, do not update the Contact or move the label. Set the anomaly fields for manual review.
+7. Otherwise copy `status_of_membership`, `billing_start_date`, `billing_end_date`, `products`, `coupon`, and `discount`; reconcile the **Current Subscription** label; and clear prior anomaly fields.
+8. If no safe winner exists, leave Contact subscription fields and the current label unchanged; set `subscription_sync_anomaly` and `subscription_sync_anomaly_reason`.
 
+`billing_start_date` selects the winner. `hs_createdate` and object ID are tie-breakers. `billing_end_date` and status are required/copied as applicable but do not rank the winner.
 > **Current Subscription** label reflects a code decision — it is not the selection algorithm itself.
 
 ### 5. Portal registration and access
@@ -276,7 +276,7 @@ Inventory and document:
 13. Stripe Billing Portal creation and return URLs
 14. Renewal, cancellation, failed-payment, past-due, invoice-payment branches
 15. Import/reconciliation scripts for legacy, alias, non-Stripe, externally billed members
-16. Environment boundaries: local, HubSpot sandbox, Stripe test, production
+16. Environment boundaries: local snapshot, HubSpot production Design Manager (no HubSpot sandbox), and Stripe live/test modes
 17. Deployment commands; where source is authoritative vs Design Manager–only edits
 
 ---
@@ -317,8 +317,8 @@ Each document must tag findings as:
 ### Phase 2 — Reconciliation (after merge logic confirmed)
 
 1. Read Notion: *Incorrect merges - 09/08/2026 - Post merge logic & New Billing End Date Logic Update*.
-2. Document winner-selection and billing-end-date logic from live code.
-3. Update business-rule catalog and data dictionary.
+2. Verify the billing-start-first winner logic and canceled-vs-active manual-review exception against the live Design Manager code.
+3. Update the business-rule catalog and data dictionary when implementation changes.
 
 ### Phase 3 — Non-Stripe and edge cases
 
