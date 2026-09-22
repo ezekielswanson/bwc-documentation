@@ -38,8 +38,6 @@ The folders below were reviewed from a local snapshot fetched from HubSpot Desig
 
 Solution architects: start at **[docs/README.md](./docs/README.md)**.
 
-Internal assignment notes: [docs/TASK_HANDOFF.md](./docs/TASK_HANDOFF.md), [docs/TOOLS_AND_SETUP.md](./docs/TOOLS_AND_SETUP.md).
-
 ## Related workspace folders
 
 Additional logic, scripts, runbooks, and historical context may exist outside this folder:
@@ -61,7 +59,5 @@ docs/
 ├── 03-serverless.md
 ├── 04-member-portal.md
 ├── 05-data-and-rules.md
-├── 06-gaps-and-ops.md
-├── TASK_HANDOFF.md           ← internal assignment
-└── TOOLS_AND_SETUP.md        ← internal tooling
+└── 06-gaps-and-ops.md
 ```
