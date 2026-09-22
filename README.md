@@ -34,20 +34,14 @@ The folders below were reviewed from a local snapshot fetched from HubSpot Desig
 | `cms-webpack-serverless-boilerplate/` | `cms-webpack-serverless-boilerplate` | Serverless functions (checkout, webhooks, mapping, renewal) |
 | `Spark-copy/` | `Spark copy` | Membership portal theme and modules (`members.betterworldclub.net`) |
 
+Design manager link:
+https://app.hubspot.com/design-manager/44020082
+
 ## Start here
 
-Solution architects: start at **[docs/README.md](./docs/README.md)**.
+Begin at **[docs/README.md](./docs/README.md)**.
 
-## Related workspace folders
 
-Additional logic, scripts, runbooks, and historical context may exist outside this folder:
-
-| Path | Notes |
-| --- | --- |
-| `../bwc_repo_webhook_final/` | Webhooks, membership reconciliation docs, `AGENTS.md` |
-| `../bwc_repo_membership portal/` | Earlier membership portal work |
-| `../bwc_login_page/` | Login page modules |
-| `../bwc-production-migration/` | Migration and import scripts |
 
 ## Client documentation pack
 
@@ -59,5 +53,5 @@ docs/
 ├── 03-serverless.md
 ├── 04-member-portal.md
 ├── 05-data-and-rules.md
-└── 06-gaps-and-ops.md
+├── 06-gaps-and-ops.md
 ```

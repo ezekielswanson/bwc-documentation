@@ -6,6 +6,10 @@ hapily object in this portal: custom object **`2-32975090`**. Current Subscripti
 
 Hapily vs BWC overlay: see [01-current-state.md](./01-current-state.md). This page is the winner algorithm.
 
+## Downloadable reference
+
+**Downloadable PDF:** [Download the BWC Contact Subscription Status PDF](./assets/bwc-contact-subscription-status.pdf?raw=1). It contains the business flow, internal function flow, winner model, field mappings, and manual-review exception.
+
 ## Winner model
 
 ```text

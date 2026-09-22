@@ -17,6 +17,8 @@ Some production code may have been edited locally and uploaded **directly to Des
 5. [05-data-and-rules.md](./05-data-and-rules.md) — fields, source of truth, winner selection
 6. [06-gaps-and-ops.md](./06-gaps-and-ops.md) — non-Stripe, in-progress, unknowns
 
+**Downloadable PDF:** [BWC Contact Subscription Status and Winner Logic](./assets/bwc-contact-subscription-status.pdf?raw=1)
+
 Status tags used throughout:
 
 | Tag | Meaning |

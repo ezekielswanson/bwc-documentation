@@ -9,35 +9,22 @@ Project notes cite Equipment Controls, TriMeter, Pointz, League of American Bicy
 | Question | Finding |
 | --- | --- |
 | Dedicated serverless route for externally billed members | **Unknown** / not present |
-| Coverage dates without Stripe | Would have to be written onto hapily Subscription or Contact **manually or via import scripts** (sibling `bwc_repo_webhook_final`, `bwc-production-migration`) |
-| Member cards | `generate-member-card-no` waits for hapily object `2-32975090`. If no hapily row, card generation never completes. |
-| Portal access | HubSpot private-content lists — **Unknown** configuration |
-| Invoice email suppression | **Unknown** in this snapshot (`stripe_invoice_email.module` exists in Spark as a module shell only) |
-| Winner algorithm | Requires `subscription_id`, status, both billing dates, and blank `subscription_type`; ranks by `billing_start_date`, then `hs_createdate`, then object ID. Purely manual HubSpot records may be excluded or anomalous. |
-
-Treat vendor **batch Stripe subscription imports** as **Unknown**. Confirm in Notion *Better World Club Imports* / *BWC Library of Scripts*.
+| Coverage dates without Stripe | Would have to be written onto hapily Subscription or Contact **manually or via import scripts** (sibling `bwc_repo_webhook_final`, `bwc-production-migration`)
+Treat vendor **batch Stripe subscription imports** are pending method of how to easily import stripe subscription in mass
 
 ## In-progress (handoff callouts)
 
 | Item | In this snapshot |
 | --- | --- |
-| Add to Apple Wallet | **Not found** |
-| Print member cards | **Not found** (portal shows `member_card_no`; `emailCards` only sets `send_membership_cards_via_email`) |
-| GreenRope API emails | **Not found**. Sibling `bwc_repo_webhook_final/docs/integrations/greenrope.md` marks GreenRope as planned/test-stage. |
+| Add Member Cards to Apple Wallet | |
+| Print member cards | 
+| GreenRope API emails - Complete the green rope -> hubspot connection to send welcome pack emails to new member sign ups in hubspot|
 
 ## Known edge cases (from code + handoff)
 
 | Case | Evidence |
-| --- | --- |
-| Logged-in new signup treated as renewal | see 02 |
-| Missing Stripe `lookup_key` | see 02 |
-| Checkout coupon vs promo code | see 03 |
-| Generic association returns wrong sub | see 04 |
-| hapily sync delay | see 03 |
-| `handle-renewal-purchase` dead | see 03 |
-| Test Stripe IDs on production Contacts | **Unknown** here; operational risk |
-| Alias / merge collisions | **Unknown** here; see Notion *Incorrect merges - 09/08/2026* |
-| Cross-subdomain API | Join uses relative `/_hcms/api` — good if Join and serverless share a HubSpot domain |
+
+
 
 ## Operations (when something is wrong)
 
