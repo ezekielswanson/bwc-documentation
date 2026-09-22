@@ -33,7 +33,7 @@ Keep Confirmed / Assumed / Unknown. Keep unique diagrams and file citations.
 
 - **Keep** in `01`: owner table, one-paragraph hapily delta, overlay mermaid, hapily links.
 - **In `05`:** delete the “Why custom code exists” bullets and hapily links. One line: “Hapily vs BWC overlay: see 01. This page is the winner algorithm.”
-- **Keep** in `05`: winner mermaid (different from `01` overlay), numbered rules, SoT, field maps.
+- **Keep** in `05`: winner model (different from `01` overlay), numbered rules, manual-review exception, SoT, and field maps.
 
 ### 2. Two mermaids on `01` — keep both, but don’t retell
 
@@ -83,7 +83,7 @@ Root README already points at `docs/README.md`. Do not duplicate the 15-minute p
 
 ## Do not cut
 
-- Winner-selection steps and validation buckets (`05`)
+- Winner-selection steps and canceled-vs-active manual-review exception (`05`)
 - Discount vs `allow_promotion_codes` (`03`)
 - `handle-renewal-purchase` early `return;` (`03`)
 - Portal property list on `crm_associations` (`04`)

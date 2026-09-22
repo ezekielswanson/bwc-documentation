@@ -13,7 +13,7 @@ Project notes cite Equipment Controls, TriMeter, Pointz, League of American Bicy
 | Member cards | `generate-member-card-no` waits for hapily object `2-32975090`. If no hapily row, card generation never completes. |
 | Portal access | HubSpot private-content lists — **Unknown** configuration |
 | Invoice email suppression | **Unknown** in this snapshot (`stripe_invoice_email.module` exists in Spark as a module shell only) |
-| Winner algorithm | Requires `subscription_id`, status, billing dates, blank `subscription_type`. Purely manual HubSpot records may be excluded or anomalous. |
+| Winner algorithm | Requires `subscription_id`, status, both billing dates, and blank `subscription_type`; ranks by `billing_start_date`, then `hs_createdate`, then object ID. Purely manual HubSpot records may be excluded or anomalous. |
 
 Treat vendor **batch Stripe subscription imports** as **Unknown**. Confirm in Notion *Better World Club Imports* / *BWC Library of Scripts*.
 
@@ -41,7 +41,7 @@ Treat vendor **batch Stripe subscription imports** as **Unknown**. Confirm in No
 
 ## Operations (when something is wrong)
 
-1. **Portal shows canceled/old plan.** Check association label 92 on the Contact. Re-run `updateContactFields` / backfill if hapily rows look complete. If no winner, read `subscription_sync_anomaly_reason`.
+1. **Portal shows canceled/old plan.** Check association label 92 and `subscription_sync_anomaly_reason`. Review the [Contacts With Conflicting Data](https://app.hubspot.com/contacts/44020082/objectLists/1116/filters) segment before backfill. Do not force a winner when the canceled-vs-active manual-review exception applies.
 2. **No member card.** Confirm hapily Subscription exists, then `member_card_no` empty, then webhook/secret `generateMemberCardNo`.
 3. **Join date missing.** Confirm `checkout.session.completed` reached `join-date-mapping`; Contact email must match Stripe customer email; field is write-once.
 4. **Checkout products empty.** `get-stripe-product-data` + primary_product metadata + lookup keys.
@@ -62,7 +62,7 @@ The live destination list, event subscriptions, snapshot payload types, and API 
 | Acknowledgment | **Unknown** | Return a successful `2xx` promptly; perform long-running work safely after acknowledgment when the platform permits. |
 | Retries and replay | Stripe retries failed deliveries; BWC replay procedure is **Unknown** | Reprocess only after confirming idempotency and the current downstream state. |
 | Payload schema | **Confirmed:** snapshot events; Zaybra `2020-08-27`, BWC `2024-04-10`, Gift Up `2022-11-15` | Parse against the destination-specific version. Test version changes before production. |
-| Test-mode parity | Not available in the reviewed Stripe connection | Confirm equivalent test destinations, event lists, secrets, and synthetic end-to-end tests. |
+| Test-mode parity | Stripe test mode exists but was not included in the reviewed connection | Confirm equivalent test destinations, event lists, secrets, and synthetic end-to-end tests. |
 | Vendor ownership | Zaybra and Gift Up endpoints are external | Escalate vendor delivery/mapping failures to the vendor; do not send vendor events to a BWC endpoint as a substitute. |
 
 ### Webhook incident flow
@@ -80,12 +80,13 @@ Stripe references: [webhook guidance](https://docs.stripe.com/webhooks), [proces
 
 | Layer | Authority |
 | --- | --- |
+| HubSpot environment | Production portal `44020082`; **no HubSpot sandbox** |
+| HubSpot source files | Collin should access `bwc-quote-form`, `cms-webpack-serverless-boilerplate`, and `Spark copy` in HubSpot Design Manager |
 | Stripe live account | Better World Holdings (`acct_1PIy6rKNMTeBGk8y`) |
-| Stripe live vs test | Stripe dashboard; serverless secret `sandboxStripe` name is suspicious — **verify** |
+| Stripe live vs test | Separate Stripe live and test modes; serverless secret `sandboxStripe` name is suspicious — **verify** |
 | Stripe event destinations | Stripe Workbench; confirmed live inventory in [03-serverless.md](./03-serverless.md) |
 | hapily sync | hapily app in portal `44020082` plus the vendor-owned Zaybra Stripe destination |
 | BWC custom Stripe webhooks | HubSpot serverless routes plus Stripe Workbench configuration |
-| Design Manager folders | `bwc-quote-form`, `cms-webpack-serverless-boilerplate`, `Spark copy` |
 | This documentation repo | Snapshot only; may drift |
 | Sibling scripts | `../bwc_repo_webhook_final/` (backfills, runbooks), migration folders |
 

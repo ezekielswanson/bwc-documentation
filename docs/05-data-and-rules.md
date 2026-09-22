@@ -6,48 +6,99 @@ hapily object in this portal: custom object **`2-32975090`**. Current Subscripti
 
 Hapily vs BWC overlay: see [01-current-state.md](./01-current-state.md). This page is the winner algorithm.
 
-```mermaid
-flowchart TB
-  allRows[All_associated_hapily_rows]
-  exclude[Exclude_deltas_blank_status_missing_dates_blank_sub_id]
-  group[Group_by_Stripe_subscription_id]
-  rep[One_representative_per_lineage]
-  compare[Compare_representatives]
-  winner[Winner]
-  anomaly[Anomaly_no_Contact_overwrite]
-  contact[Patch_Contact_fields]
-  label[Label_92_on_winner_clear_losers]
+## Winner model
 
-  allRows --> exclude --> group --> rep --> compare
-  compare -->|clear winner| winner
-  compare -->|tie or none| anomaly
-  winner --> contact
-  winner --> label
+```text
++--------------------------------------------------+
+| All associated Hapily subscriptions for Contact |
++--------------------------------------------------+
+                         |
+                         v
++--------------------------------------------------+
+| Keep eligible rows only                         |
+| - blank subscription_type                       |
+| - subscription_status present                   |
+| - subscription_id present                       |
+| - billing_start_date present                    |
+| - billing_end_date present                      |
++--------------------------------------------------+
+                         |
+                         v
++--------------------------------------------------+
+| Group by Stripe subscription_id                 |
++--------------------------------------------------+
+                         |
+                         v
++--------------------------------------------------+
+| Pick one representative per lifecycle           |
+| 1. latest billing_start_date                    |
+| 2. latest hs_createdate                         |
+| 3. highest HubSpot object ID                    |
++--------------------------------------------------+
+                         |
+                         v
++--------------------------------------------------+
+| Pick the Contact-level standard winner          |
+| using the same three-field order                |
++--------------------------------------------------+
+                         |
+                         v
++--------------------------------------------------+
+| Apply manual-review safety exception            |
++--------------------------------------------------+
+                         |
+             +-----------+-----------+
+             |                       |
+             v                       v
++---------------------------+   +---------------------------+
+| Safe winner               |   | No safe winner            |
+| Update Contact            |   | Keep Contact unchanged    |
+| Move current label        |   | Keep label unchanged      |
+| Clear anomaly             |   | Set anomaly for review    |
++---------------------------+   +---------------------------+
 ```
 
-## Winner selection (Confirmed — `updateContactFields.js`)
+## Winner selection (`updateContactFields.js`)
 
-1. Load all hapily Subscriptions associated to the Contact (paged).
-2. **Exclude** if:
-   - `subscription_type` is populated (hapily Upgrade/Downgrade delta)
-   - `subscription_status` blank
-   - `billing_start_date` or `billing_end_date` missing
-   - `subscription_id` blank
-3. Group remaining by Stripe `subscription_id`. Pick one representative per group.
-4. Sort key (same function for representative and overall winner):
-   - Latest `billing_end_date`
-   - Then latest `billing_start_date`
-   - Then validation bucket: `RENEWED_VALIDATED` > `CANCELED_VALIDATED` > `UNVALIDATED`
-   - Then highest HubSpot object ID (technical only)
-5. If top two share the same billing window **and** the same validation bucket → **no winner** (anomaly). Object ID is not used to break that tie.
-6. On winner: copy fields onto Contact **only if they differ**; skip empty source values. Clear anomaly flags.
-7. On no winner: set `subscription_sync_anomaly` / `subscription_sync_anomaly_reason`. **Do not** overwrite billing/status/products. Clear Current Subscription labels on the eligible subset.
-8. Does **not** write cancellation-intent fields.
+1. Resolve the Contact associated with the triggering hapily Subscription.
+2. Load all hapily Subscriptions associated with that Contact.
+3. Exclude any record where:
+   - `subscription_type` is populated
+   - `subscription_status` is blank
+   - `subscription_id` is blank
+   - `billing_start_date` is missing
+   - `billing_end_date` is missing
+4. Group the remaining records by Stripe `subscription_id`.
+5. Within each `subscription_id`, choose one representative by:
+   - latest `billing_start_date`
+   - then latest `hs_createdate`
+   - then highest HubSpot object ID
+6. Compare the representatives using the same order to select the standard Contact-level winner.
+7. Apply the manual-review exception before writing.
+8. For a safe winner, copy `status_of_membership`, `billing_start_date`, `billing_end_date`, `products`, `coupon`, and `discount` to the Contact; reconcile the **Current Subscription** label to that record; and clear prior anomaly fields.
+9. If no eligible or safe winner exists, do not overwrite the Contact and do not auto-move the label. Set `subscription_sync_anomaly` and `subscription_sync_anomaly_reason`.
+10. Keep `requested_cancellation` and `requested_cancellation_date` separate from live subscription state.
 
-Validation buckets (supporting signals only — they do not replace billing-window comparison):
+### Manual-review exception
 
-- **RENEWED_VALIDATED:** `paid_through` and `renewal_date` both present
-- **CANCELED_VALIDATED:** status `canceled` (British `cancelled` normalized), `paid_through` in the past, no `renewal_date`
+Do not auto-select the standard winner when all of these conditions are true:
+
+- the standard winner is `canceled`
+- a competing eligible subscription is `active`
+- the active subscription has `paid_through`
+- the case appears merge-affected or tied to a deleted Stripe subscription lineage
+
+Leave the Contact subscription fields and **Current Subscription** label unchanged, then set the anomaly fields for review. Use the [Contacts With Conflicting Data](https://app.hubspot.com/contacts/44020082/objectLists/1116/filters) segment to resolve these cases. The anomaly fields are cleared when a safe winner is found later.
+
+### Rules that must not drift
+
+- `billing_start_date` is the primary winner field.
+- `hs_createdate` is only a tie-breaker.
+- Highest HubSpot object ID is the final deterministic tie-breaker.
+- `billing_end_date` is required for eligibility and copied to the Contact, but it does not select the winner.
+- `subscription_status` is copied from the winner, but it does not select the winner.
+- The function must evaluate the complete Contact-level subscription set, not only the triggering record.
+- The **Current Subscription** label must follow the same safe winner.
 
 ## Source-of-truth matrix
 
@@ -62,7 +113,7 @@ Validation buckets (supporting signals only — they do not replace billing-wind
 | `member_card_no` | BWC generator after hapily sub exists | Contact, skip if set |
 | `member_id` | Legacy / Contact id fallback | Contact; card uses last 5 digits |
 | Portal login | HubSpot private content | Access group (**Unknown** name) |
-| Cancellation **intent** | **Unknown** in this snapshot | Not updated by `updateContactFields` |
+| Cancellation **intent** | HubSpot workflows | Contact `requested_cancellation` / `requested_cancellation_date`; never used to rank the live subscription |
 
 ## Stripe event inputs and downstream ownership
 
@@ -83,16 +134,16 @@ Receiving an event confirms an integration input. It does **not** prove that the
 
 ## Contact fields written by winner selection
 
-| Contact | From hapily Subscription |
+| Contact field | Source |
 | --- | --- |
-| `billing_start_date` | `billing_start_date` |
-| `billing_end_date` | `billing_end_date` |
-| `status_of_membership` | `subscription_status` (`cancelled` → `canceled`) |
-| `products` | `products` |
-| `coupon` | `coupon` |
-| `discount` | `discount` |
-| `subscription_sync_anomaly` | set/cleared by algorithm |
-| `subscription_sync_anomaly_reason` | set/cleared by algorithm |
+| `billing_start_date` | hapily `billing_start_date` |
+| `billing_end_date` | hapily `billing_end_date` |
+| `status_of_membership` | hapily `subscription_status` (`cancelled` → `canceled`) |
+| `products` | hapily `products` |
+| `coupon` | hapily `coupon` |
+| `discount` | hapily `discount` |
+| `subscription_sync_anomaly` | sync function |
+| `subscription_sync_anomaly_reason` | sync function |
 
 ## Other identifiers (do not conflate)
 
@@ -110,16 +161,18 @@ Receiving an event confirms an integration input. It does **not** prove that the
 | Date | Meaning in this snapshot |
 | --- | --- |
 | `join_date` | First successful Checkout (`event.created`), ISO `YYYY-MM-DD`, write-once |
-| `billing_start_date` / `billing_end_date` | hapily current cycle; **primary** winner key |
-| `paid_through` / `renewal_date` | Validation signals only |
+| `billing_start_date` | **Primary winner field** |
+| `hs_createdate` | First tie-breaker only |
+| HubSpot object ID | Final deterministic tie-breaker |
+| `billing_end_date` | Required for eligibility and copied to Contact; does not rank the winner |
+| `paid_through` | Used only by the manual-review exception as active-payment evidence |
 | Renewal form min start | First associated sub `billing_end_date` + 1 day (`main.js`) — **not** necessarily the labeled Current Subscription |
 
 ## Status mapping
 
-Contact `status_of_membership` is a copy of hapily `subscription_status` with spelling normalized. Portal past-due color is a display rule on that status. Full Stripe → portal behavior matrix beyond that copy is **Assumed**.
+Contact `status_of_membership` is copied from the safe winner’s hapily `subscription_status`, with spelling normalized. Status does not rank the winner. Portal past-due color is a display rule on the copied status.
 
 ## Open questions
 
 - Alias-email mapping implementation — not in these three folders.
-- `requested_cancellation` / `requested_cancellation_date` — **not present** in this snapshot.
 - Exact Zaybra API requests and field mappings beyond the confirmed subscribed-event families.
